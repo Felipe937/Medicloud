@@ -1,8 +1,9 @@
+import { Activity } from 'lucide-react';
 import React, { useState, useContext } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+
 import FormInput from '../components/FormInput';
-import { Activity } from 'lucide-react';
+import { AuthContext } from '../context/AuthContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');

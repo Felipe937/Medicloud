@@ -1,14 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
-import Layout from './components/Layout';
 
-// View placeholders (We will create these next)
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Pacientes from './pages/Pacientes';
-import Medicos from './pages/Medicos';
+import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
 import Citas from './pages/Citas';
+import Dashboard from './pages/Dashboard';
 import Historias from './pages/Historias';
+import Login from './pages/Login';
+import Medicos from './pages/Medicos';
+import Pacientes from './pages/Pacientes';
 
 function App() {
   return (

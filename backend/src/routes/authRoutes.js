@@ -1,8 +1,9 @@
 const express = require('express');
+
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { validateRegister, validateLogin } = require('../validators/authValidator');
 const authenticateToken = require('../middleware/authMiddleware');
+const { validateRegister, validateLogin } = require('../validators/authValidator');
 
 // RUTAS PÚBLICAS
 

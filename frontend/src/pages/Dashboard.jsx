@@ -1,21 +1,39 @@
-import React, { useEffect, useState } from 'react';
+import {
+  CalendarCheck,
+  CalendarClock,
+  ClipboardList,
+  Stethoscope,
+  Users
+} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+
 import api from '../services/api';
-import Loading from '../components/Loading';
-import { Users, Calendar, Clock, Activity } from 'lucide-react';
+import './Dashboard.css';
+
+const formatNumber = (value) => new Intl.NumberFormat('es-CO').format(value || 0);
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await api.get('/dashboard/stats');
+        setLoading(true);
+        setError('');
+
+        const response = await api.get('/api/dashboard/stats');
+
         if (response.data.success) {
           setStats(response.data.data);
+          return;
         }
-      } catch (error) {
-        console.error('Error fetching stats:', error);
+
+        setError('No fue posible cargar las estadisticas.');
+      } catch (err) {
+        console.error('Error fetching dashboard stats:', err);
+        setError('No fue posible conectar con el dashboard.');
       } finally {
         setLoading(false);
       }
@@ -24,139 +42,92 @@ const Dashboard = () => {
     fetchStats();
   }, []);
 
-  if (loading) return <Loading message="Cargando panel de control..." />;
+  const cards = useMemo(() => {
+    const safeStats = stats || {};
+
+    return [
+      {
+        title: 'Pacientes',
+        value: safeStats.totalPacientes,
+        description: 'Registros activos',
+        icon: Users,
+        variant: 'blue'
+      },
+      {
+        title: 'Medicos',
+        value: safeStats.totalMedicos,
+        description: 'Equipo disponible',
+        icon: Stethoscope,
+        variant: 'green'
+      },
+      {
+        title: 'Citas',
+        value: safeStats.totalCitas,
+        description: 'Agenda historica',
+        icon: ClipboardList,
+        variant: 'indigo'
+      },
+      {
+        title: 'Citas hoy',
+        value: safeStats.citasHoy,
+        description: 'Atencion del dia',
+        icon: CalendarCheck,
+        variant: 'amber'
+      },
+      {
+        title: 'Pendientes',
+        value: safeStats.citasPendientes,
+        description: 'Por gestionar',
+        icon: CalendarClock,
+        variant: 'rose'
+      }
+    ];
+  }, [stats]);
+
+  if (loading) {
+    return (
+      <div className="dashboard-loading">
+        <div className="dashboard-spinner" />
+        <p>Cargando dashboard...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Dashboard General</h1>
-      </div>
+    <div className="dashboard-page">
+      <header className="dashboard-header">
+        <div>
+          <p className="dashboard-kicker">Resumen hospitalario</p>
+          <h1>Dashboard</h1>
+        </div>
+      </header>
 
-      <div style={styles.statsGrid}>
-        <StatCard 
-          title="Citas de Hoy" 
-          value={stats?.citas_hoy || 0} 
-          icon={<Calendar color="var(--primary)" size={24} />} 
-        />
-        <StatCard 
-          title="Pacientes Atendidos" 
-          value={stats?.pacientes_atendidos_hoy || 0} 
-          icon={<Users color="var(--secondary)" size={24} />} 
-        />
-        <StatCard 
-          title="Médicos Disponibles" 
-          value={stats?.disponibilidad_medicos?.length || 0} 
-          icon={<Activity color="var(--warning)" size={24} />} 
-        />
-      </div>
+      {error && <div className="dashboard-error">{error}</div>}
 
-      <div style={styles.section}>
-        <h2 style={styles.sectionTitle}>
-          <Clock size={20} />
-          Disponibilidad de Médicos (Próximas 4 horas)
-        </h2>
-        
-        {stats?.disponibilidad_medicos?.length === 0 ? (
-          <p style={styles.emptyState}>No hay médicos con turnos próximos.</p>
-        ) : (
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Médico</th>
-                  <th>Citas Programadas</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats?.disponibilidad_medicos?.map((medico) => (
-                  <tr key={medico.id_medico}>
-                    <td>#{medico.id_medico}</td>
-                    <td style={{ fontWeight: '500' }}>{medico.nombre}</td>
-                    <td>{medico.citas_programadas} citas</td>
-                    <td>
-                      {medico.citas_programadas > 3 ? (
-                        <span className="badge badge-warning">Alta demanda</span>
-                      ) : (
-                        <span className="badge badge-success">Disponible</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <section className="dashboard-grid" aria-label="Estadisticas del dashboard">
+        {cards.map((card, index) => (
+          <StatCard key={card.title} index={index} {...card} />
+        ))}
+      </section>
     </div>
   );
 };
 
-const StatCard = ({ title, value, icon }) => (
-  <div style={styles.statCard}>
-    <div style={styles.statIconWrapper}>{icon}</div>
-    <div>
-      <p style={styles.statTitle}>{title}</p>
-      <h3 style={styles.statValue}>{value}</h3>
+const StatCard = ({ title, value, description, icon: Icon, variant, index }) => (
+  <article
+    className={`dashboard-card dashboard-card-${variant}`}
+    style={{ animationDelay: `${index * 70}ms` }}
+  >
+    <div className="dashboard-card-icon">
+      <Icon size={24} strokeWidth={2.2} />
     </div>
-  </div>
-);
 
-const styles = {
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '1.5rem',
-    marginBottom: '2rem',
-  },
-  statCard: {
-    backgroundColor: 'var(--surface)',
-    padding: '1.5rem',
-    borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-sm)',
-    border: '1px solid var(--border-color)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-  },
-  statIconWrapper: {
-    padding: '1rem',
-    backgroundColor: 'var(--bg-color)',
-    borderRadius: 'var(--radius-md)',
-    display: 'flex',
-  },
-  statTitle: {
-    color: 'var(--text-muted)',
-    fontSize: '0.875rem',
-    marginBottom: '0.25rem',
-  },
-  statValue: {
-    color: 'var(--text-main)',
-    fontSize: '1.5rem',
-    fontWeight: '700',
-    margin: 0,
-  },
-  section: {
-    backgroundColor: 'var(--surface)',
-    padding: '1.5rem',
-    borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-sm)',
-    border: '1px solid var(--border-color)',
-  },
-  sectionTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    fontSize: '1.125rem',
-    color: 'var(--text-main)',
-    marginBottom: '1.5rem',
-  },
-  emptyState: {
-    color: 'var(--text-muted)',
-    textAlign: 'center',
-    padding: '2rem',
-  }
-};
+    <div className="dashboard-card-content">
+      <span>{title}</span>
+      <strong>{formatNumber(value)}</strong>
+      <small>{description}</small>
+    </div>
+  </article>
+);
 
 export default Dashboard;

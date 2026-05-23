@@ -1,25 +1,39 @@
-const crypto = require('crypto');
+const CryptoJS = require('crypto-js');
 
-const algorithm = 'aes-256-cbc';
-const secretKey = Buffer.from(process.env.AES_SECRET, 'utf8'); // 32 bytes
-const ivLength = 16;
+const getSecretKey = () => {
+    const secret = process.env.AES_SECRET;
 
-function encrypt(text) {
-    const iv = crypto.randomBytes(ivLength);
-    const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return iv.toString('hex') + ':' + encrypted;
-}
+    if (!secret) {
+        throw new Error('AES_SECRET no esta configurada');
+    }
 
-function decrypt(encryptedText) {
-    const parts = encryptedText.split(':');
-    const iv = Buffer.from(parts[0], 'hex');
-    const encrypted = parts[1];
-    const decipher = crypto.createDecipheriv(algorithm, secretKey, iv);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    return CryptoJS.SHA256(secret).toString();
+};
+
+const encryptData = (data) => {
+    if (data === undefined || data === null) {
+        throw new Error('El texto a cifrar es requerido');
+    }
+
+    return CryptoJS.AES.encrypt(String(data), getSecretKey()).toString();
+};
+
+const decryptData = (encryptedData) => {
+    if (!encryptedData) {
+        throw new Error('El texto cifrado es requerido');
+    }
+
+    const bytes = CryptoJS.AES.decrypt(encryptedData, getSecretKey());
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+
+    if (!decrypted) {
+        throw new Error('No fue posible descifrar la informacion');
+    }
+
     return decrypted;
-}
+};
 
-module.exports = { encrypt, decrypt };
+module.exports = {
+    encryptData,
+    decryptData
+};

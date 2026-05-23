@@ -1,10 +1,18 @@
 const express = require('express');
-const router = express.Router();
+
 const historiaController = require('../controllers/historiaController');
 const auth = require('../middleware/authMiddleware');
-const role = require('../middleware/roleMiddleware');
+const { validateIdParam } = require('../validators/commonValidators');
+const {
+    validateCreateHistoria,
+    validateUpdateHistoria
+} = require('../validators/historiaValidator');
 
-router.get('/paciente/:id_paciente', auth, role('admin', 'medico'), historiaController.getByPaciente);
-router.post('/', auth, role('admin', 'medico'), historiaController.create);
+const router = express.Router();
+
+router.get('/', auth, historiaController.listarHistorias);
+router.get('/:id', auth, validateIdParam(), historiaController.obtenerHistoriaPorId);
+router.post('/', auth, validateCreateHistoria, historiaController.crearHistoriaClinica);
+router.put('/:id', auth, validateIdParam(), validateUpdateHistoria, historiaController.actualizarHistoria);
 
 module.exports = router;

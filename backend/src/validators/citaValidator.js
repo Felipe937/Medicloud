@@ -1,18 +1,6 @@
-const { body, validationResult } = require('express-validator');
+const { body } = require('express-validator');
 
-const handleValidationErrors = (req, res, next) => {
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-        return res.status(400).json({
-            success: false,
-            message: 'Errores de validacion en la solicitud',
-            errors: errors.array()
-        });
-    }
-
-    return next();
-};
+const handleValidationErrors = require('./handleValidationErrors');
 
 const validateFechaFutura = (value) => {
     const fechaCita = new Date(value);

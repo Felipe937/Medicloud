@@ -1,219 +1,179 @@
-import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import { FilePlus2, RefreshCw } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+
+import FeedbackMessage from '../components/FeedbackMessage';
+import HistoriaForm from '../components/Historias/HistoriaForm';
+import HistoriasList from '../components/Historias/HistoriasList';
 import Modal from '../components/Modal';
-import FormInput from '../components/FormInput';
-import Loading from '../components/Loading';
-import { FileText, Plus, Search } from 'lucide-react';
+import api from '../services/api';
+import getApiErrorMessage from '../utils/apiError';
+import './Historias.css';
 
 const Historias = () => {
-  const [pacientes, setPacientes] = useState([]);
-  const [selectedPacienteId, setSelectedPacienteId] = useState('');
-  
   const [historias, setHistorias] = useState([]);
-  const [loading, setLoading] = useState(false);
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [nuevoContenido, setNuevoContenido] = useState('');
+  const [pacientes, setPacientes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedHistoria, setSelectedHistoria] = useState(null);
+  const [viewHistoria, setViewHistoria] = useState(null);
 
-  useEffect(() => {
-    // Fetch pacientes to populate select
-    const fetchPacientes = async () => {
-      try {
-        const response = await api.get('/pacientes');
-        if (response.data.success) {
-          setPacientes(response.data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching pacientes:', error);
-      }
-    };
-    fetchPacientes();
-  }, []);
+  const pacientesById = useMemo(() => {
+    return pacientes.reduce((acc, paciente) => {
+      acc[paciente.id_paciente] = paciente;
+      return acc;
+    }, {});
+  }, [pacientes]);
 
-  useEffect(() => {
-    if (selectedPacienteId) {
-      fetchHistorias(selectedPacienteId);
-    } else {
-      setHistorias([]);
-    }
-  }, [selectedPacienteId]);
-
-  const fetchHistorias = async (idPaciente) => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/historias/paciente/${idPaciente}`);
-      if (response.data.success) {
-        setHistorias(response.data.data);
+      setError('');
+
+      const [historiasResponse, pacientesResponse] = await Promise.all([
+        api.get('/historias'),
+        api.get('/api/pacientes')
+      ]);
+
+      if (historiasResponse.data.success) {
+        setHistorias(historiasResponse.data.data);
       }
-    } catch (error) {
-      console.error('Error fetching historias:', error);
+
+      if (pacientesResponse.data.success) {
+        setPacientes(pacientesResponse.data.data);
+      }
+    } catch (err) {
+      console.error('Error loading historias:', err);
+      setError(getApiErrorMessage(err, 'No fue posible cargar las historias clinicas.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedPacienteId) {
-      alert("Seleccione un paciente primero");
-      return;
-    }
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-    setFormLoading(true);
+  const openCreateForm = () => {
+    setSelectedHistoria(null);
+    setIsFormOpen(true);
+  };
+
+  const openEditForm = (historia) => {
+    setSelectedHistoria(historia);
+    setIsFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setSelectedHistoria(null);
+    setIsFormOpen(false);
+  };
+
+  const handleSubmit = async (formData) => {
     try {
-      await api.post('/historias', {
-        id_paciente: selectedPacienteId,
-        contenido: nuevoContenido
-      });
-      setIsModalOpen(false);
-      setNuevoContenido('');
-      fetchHistorias(selectedPacienteId); // Refresh
-    } catch (error) {
-      console.error('Error saving historia:', error);
-      alert('Error al guardar la historia clínica');
+      setFormLoading(true);
+      setError('');
+
+      if (selectedHistoria) {
+        await api.put(`/historias/${selectedHistoria.id_historia}`, formData);
+      } else {
+        await api.post('/historias', formData);
+      }
+
+      setSuccess(selectedHistoria ? 'Historia clinica actualizada correctamente.' : 'Historia clinica creada correctamente.');
+      closeForm();
+      await fetchData();
+    } catch (err) {
+      console.error('Error saving historia:', err);
+      setError(getApiErrorMessage(err, 'No fue posible guardar la historia clinica.'));
     } finally {
       setFormLoading(false);
     }
   };
 
+  const viewedPaciente = viewHistoria
+    ? pacientesById[viewHistoria.id_paciente || viewHistoria.paciente]
+    : null;
+
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Historias Clínicas</h1>
-        <button 
-          className="btn btn-primary" 
-          onClick={() => setIsModalOpen(true)}
-          disabled={!selectedPacienteId}
-        >
-          <Plus size={18} /> Agregar Registro
-        </button>
-      </div>
-
-      <div style={styles.selectorContainer}>
-        <div className="form-group" style={{ maxWidth: '400px', margin: 0 }}>
-          <label className="form-label">Seleccionar Paciente</label>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', marginLeft: '10px' }} />
-            <select 
-              className="form-control"
-              style={{ paddingLeft: '2rem' }}
-              value={selectedPacienteId}
-              onChange={(e) => setSelectedPacienteId(e.target.value)}
-            >
-              <option value="">-- Seleccione para ver historial --</option>
-              {pacientes.map(p => (
-                <option key={p.id_paciente} value={p.id_paciente}>{p.nombre} ({p.documento})</option>
-              ))}
-            </select>
-          </div>
+    <div className="historias-page">
+      <header className="historias-header">
+        <div>
+          <p>Gestion clinica</p>
+          <h1>Historias clinicas</h1>
         </div>
-      </div>
 
-      {!selectedPacienteId ? (
-        <div style={styles.emptyState}>
-          <FileText size={48} color="var(--border-color)" style={{ marginBottom: '1rem' }} />
-          <h3>No hay paciente seleccionado</h3>
-          <p>Seleccione un paciente en la lista superior para ver su historial médico.</p>
+        <div className="historias-toolbar">
+          <button type="button" className="btn btn-outline" onClick={fetchData} disabled={loading}>
+            <RefreshCw size={17} />
+            Actualizar
+          </button>
+          <button type="button" className="btn btn-primary" onClick={openCreateForm}>
+            <FilePlus2 size={17} />
+            Nueva historia
+          </button>
         </div>
-      ) : loading ? (
-        <Loading message="Cargando historial cifrado..." />
-      ) : (
-        <div style={styles.timeline}>
-          {historias.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>El paciente seleccionado no tiene registros en su historia clínica.</p>
-          ) : (
-            historias.map(historia => (
-              <div key={historia.id_historia} style={styles.timelineItem}>
-                <div style={styles.timelineDate}>
-                  {new Date(historia.fecha_creacion).toLocaleDateString()} a las {new Date(historia.fecha_creacion).toLocaleTimeString()}
-                </div>
-                <div style={styles.timelineContent}>
-                  {historia.contenido}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+      </header>
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title="Nuevo Registro Clínico"
+      <FeedbackMessage
+        type="success"
+        message={success}
+        onClose={() => setSuccess('')}
+      />
+
+      <HistoriasList
+        historias={historias}
+        pacientesById={pacientesById}
+        loading={loading}
+        error={error}
+        onView={setViewHistoria}
+        onEdit={openEditForm}
+      />
+
+      <Modal
+        isOpen={isFormOpen}
+        onClose={closeForm}
+        title={selectedHistoria ? 'Editar historia clinica' : 'Nueva historia clinica'}
       >
-        <form onSubmit={handleSubmit}>
-          <p style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            Este registro será <strong>cifrado</strong> en la base de datos automáticamente (AES-256).
-          </p>
-          <FormInput 
-            label="Contenido / Observaciones Médicas" 
-            type="textarea"
-            value={nuevoContenido} 
-            onChange={e => setNuevoContenido(e.target.value)} 
-            required 
-            style={{ minHeight: '200px', resize: 'vertical' }}
-          />
-          
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-            <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={formLoading}>
-              {formLoading ? 'Cifrando y Guardando...' : 'Guardar Registro'}
-            </button>
+        <HistoriaForm
+          pacientes={pacientes}
+          historia={selectedHistoria}
+          loading={formLoading}
+          onCancel={closeForm}
+          onSubmit={handleSubmit}
+        />
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(viewHistoria)}
+        onClose={() => setViewHistoria(null)}
+        title="Detalle de historia clinica"
+      >
+        {viewHistoria && (
+          <div className="historia-detail">
+            <div>
+              <span>Paciente</span>
+              <strong>{viewedPaciente?.nombre || `Paciente #${viewHistoria.paciente}`}</strong>
+            </div>
+            <div>
+              <span>Diagnostico</span>
+              <p>{viewHistoria.diagnostico}</p>
+            </div>
+            <div>
+              <span>Tratamiento</span>
+              <p>{viewHistoria.tratamiento}</p>
+            </div>
+            <div>
+              <span>Notas medicas</span>
+              <p>{viewHistoria.notas_medicas || 'Sin notas registradas.'}</p>
+            </div>
           </div>
-        </form>
+        )}
       </Modal>
     </div>
   );
-};
-
-const styles = {
-  selectorContainer: {
-    backgroundColor: 'var(--surface)',
-    padding: '1.5rem',
-    borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-sm)',
-    border: '1px solid var(--border-color)',
-    marginBottom: '2rem'
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '4rem',
-    backgroundColor: 'var(--surface)',
-    borderRadius: 'var(--radius-lg)',
-    border: '1px dashed var(--border-color)',
-    color: 'var(--text-muted)',
-    textAlign: 'center'
-  },
-  timeline: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem'
-  },
-  timelineItem: {
-    backgroundColor: 'var(--surface)',
-    padding: '1.5rem',
-    borderRadius: 'var(--radius-md)',
-    borderLeft: '4px solid var(--primary)',
-    boxShadow: 'var(--shadow-sm)'
-  },
-  timelineDate: {
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    color: 'var(--primary)',
-    marginBottom: '0.5rem',
-    textTransform: 'uppercase'
-  },
-  timelineContent: {
-    color: 'var(--text-main)',
-    lineHeight: '1.6',
-    whiteSpace: 'pre-wrap'
-  }
 };
 
 export default Historias;

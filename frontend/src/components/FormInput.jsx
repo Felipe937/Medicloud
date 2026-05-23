@@ -11,6 +11,7 @@ const FormInput = ({ label, type = 'text', id, error, required, ...props }) => {
           id={id}
           className="form-control" 
           style={{ minHeight: '100px', resize: 'vertical' }}
+          required={required}
           {...props} 
         />
       ) : (
@@ -18,6 +19,7 @@ const FormInput = ({ label, type = 'text', id, error, required, ...props }) => {
           type={type} 
           id={id}
           className="form-control" 
+          required={required}
           {...props} 
         />
       )}

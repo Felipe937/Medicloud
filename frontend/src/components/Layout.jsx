@@ -1,12 +1,13 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Sidebar from './Sidebar';
+
+import Navbar from './Navbar';
 
 const Layout = () => {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-color)' }}>
-      <Sidebar />
-      <main style={{ flex: 1, marginLeft: '260px', padding: '2rem' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-color)' }}>
+      <Navbar />
+      <main style={{ width: '100%' }}>
         <Outlet />
       </main>
     </div>

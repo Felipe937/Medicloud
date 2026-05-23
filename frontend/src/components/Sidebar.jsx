@@ -1,7 +1,8 @@
+import { LayoutDashboard, Users, UserCircle, Calendar, FileText, LogOut } from 'lucide-react';
 import React, { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
+
 import { AuthContext } from '../context/AuthContext';
-import { LayoutDashboard, Users, UserRound, Calendar, FileText, LogOut } from 'lucide-react';
 
 const Sidebar = () => {
   const { user, logout } = useContext(AuthContext);
@@ -9,7 +10,7 @@ const Sidebar = () => {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['admin', 'medico', 'recepcion'] },
     { name: 'Pacientes', path: '/pacientes', icon: <Users size={20} />, roles: ['admin', 'medico', 'recepcion'] },
-    { name: 'Médicos', path: '/medicos', icon: <UserRound size={20} />, roles: ['admin', 'recepcion'] },
+    { name: 'Médicos', path: '/medicos', icon: <UserCircle size={20} />, roles: ['admin', 'recepcion'] },
     { name: 'Citas', path: '/citas', icon: <Calendar size={20} />, roles: ['admin', 'medico', 'recepcion'] },
     { name: 'Historias Clínicas', path: '/historias', icon: <FileText size={20} />, roles: ['admin', 'medico'] },
   ];

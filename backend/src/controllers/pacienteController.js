@@ -1,5 +1,6 @@
-const { getConnection, sql } = require('../config/database');
 const bcrypt = require('bcryptjs');
+
+const { getConnection, sql } = require('../config/database');
 
 exports.getAll = async (req, res) => {
     try {

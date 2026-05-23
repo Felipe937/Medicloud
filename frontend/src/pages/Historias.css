@@ -1,0 +1,249 @@
+.historias-page {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.historias-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.historias-header p {
+  color: #0f766e;
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.historias-header h1 {
+  color: var(--text-main);
+  font-size: 1.75rem;
+  font-weight: 750;
+  line-height: 1.15;
+}
+
+.historias-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.historias-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.historia-card {
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.historia-card:hover {
+  transform: translateY(-3px);
+  border-color: #bae6fd;
+  box-shadow: var(--shadow-md);
+}
+
+.historia-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.historia-card h3 {
+  color: var(--text-main);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.historia-eyebrow,
+.historia-summary span,
+.historia-detail span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.historia-date {
+  background: var(--primary-light);
+  border-radius: var(--radius-full);
+  color: var(--primary-dark);
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+}
+
+.historia-summary {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.historia-summary p {
+  color: var(--text-main);
+  display: -webkit-box;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.historia-actions {
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+}
+
+.historia-form {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.historia-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.historia-detail {
+  display: grid;
+  gap: 1rem;
+}
+
+.historia-detail div {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.historia-detail strong {
+  color: var(--text-main);
+  font-size: 1rem;
+}
+
+.historia-detail p {
+  color: var(--text-main);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.historias-empty,
+.historias-loading {
+  align-items: center;
+  background: var(--surface);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 280px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.historias-empty svg {
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+
+.historias-empty h3 {
+  color: var(--text-main);
+  margin-bottom: 0.4rem;
+}
+
+.historias-alert {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: var(--radius-md);
+  color: #9f1239;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.875rem 1rem;
+}
+
+.historias-spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #dbeafe;
+  border-radius: 50%;
+  border-top-color: var(--primary);
+  margin-bottom: 1rem;
+  animation: historiasSpin 820ms linear infinite;
+}
+
+@keyframes historiasSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .historias-page {
+    padding: 1rem;
+  }
+
+  .historias-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .historias-toolbar,
+  .historia-actions,
+  .historia-form-actions {
+    width: 100%;
+  }
+
+  .historias-toolbar .btn,
+  .historia-actions .btn,
+  .historia-form-actions .btn {
+    flex: 1;
+  }
+
+  .historia-card-header {
+    flex-direction: column;
+  }
+
+  .historia-date {
+    align-self: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .historia-card,
+  .historias-spinner {
+    animation: none;
+    transition: none;
+  }
+
+  .historia-card:hover {
+    transform: none;
+  }
+}

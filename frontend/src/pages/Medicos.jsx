@@ -1,184 +1,211 @@
-import React, { useState, useEffect } from 'react';
-import api from '../services/api';
-import Modal from '../components/Modal';
+import { Edit2, Plus, Stethoscope, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+
+import ConfirmDialog from '../components/ConfirmDialog';
+import EmptyState from '../components/EmptyState';
+import FeedbackMessage from '../components/FeedbackMessage';
 import FormInput from '../components/FormInput';
 import Loading from '../components/Loading';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import Modal from '../components/Modal';
+import api from '../services/api';
+import getApiErrorMessage from '../utils/apiError';
+
+const emptyForm = {
+  nombre: '',
+  especialidad: '',
+  telefono: '',
+  email: ''
+};
 
 const Medicos = () => {
   const [medicos, setMedicos] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentMedico, setCurrentMedico] = useState(null);
-  
-  const [formData, setFormData] = useState({
-    nombre: '', especialidad: '', telefono: '', email: ''
-  });
+  const [formData, setFormData] = useState(emptyForm);
   const [formLoading, setFormLoading] = useState(false);
-
-  useEffect(() => {
-    fetchMedicos();
-  }, []);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   const fetchMedicos = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/medicos');
+      const response = await api.get('/api/medicos');
       if (response.data.success) {
         setMedicos(response.data.data);
       }
     } catch (error) {
       console.error('Error fetching medicos:', error);
+      setFeedback({ type: 'error', message: getApiErrorMessage(error, 'No fue posible cargar los medicos.') });
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchMedicos();
+  }, []);
+
   const openModal = (medico = null) => {
-    if (medico) {
-      setCurrentMedico(medico);
-      setFormData({
-        nombre: medico.nombre,
-        especialidad: medico.especialidad,
-        telefono: medico.telefono,
-        email: medico.email
-      });
-    } else {
-      setCurrentMedico(null);
-      setFormData({ nombre: '', especialidad: '', telefono: '', email: '' });
-    }
+    setCurrentMedico(medico);
+    setFormData(medico ? {
+      nombre: medico.nombre || '',
+      especialidad: medico.especialidad || '',
+      telefono: medico.telefono || '',
+      email: medico.email || ''
+    } : emptyForm);
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setFormLoading(true);
-    
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setCurrentMedico(null);
+    setFormData(emptyForm);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     try {
+      setFormLoading(true);
       if (currentMedico) {
-        await api.put(`/medicos/${currentMedico.id_medico}`, formData);
+        await api.put(`/api/medicos/${currentMedico.id_medico}`, formData);
       } else {
-        await api.post('/medicos', formData);
+        await api.post('/api/medicos', formData);
       }
-      setIsModalOpen(false);
-      fetchMedicos();
+
+      closeModal();
+      setFeedback({
+        type: 'success',
+        message: currentMedico ? 'Medico actualizado correctamente.' : 'Medico creado correctamente.'
+      });
+      await fetchMedicos();
     } catch (error) {
       console.error('Error saving medico:', error);
-      alert('Error al guardar el médico');
+      setFeedback({ type: 'error', message: getApiErrorMessage(error, 'Error al guardar el medico.') });
     } finally {
       setFormLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar este médico?')) {
-      try {
-        await api.delete(`/medicos/${id}`);
-        fetchMedicos();
-      } catch (error) {
-        console.error('Error deleting:', error);
-      }
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      setDeleteLoading(true);
+      await api.delete(`/api/medicos/${deleteTarget.id_medico}`);
+      setFeedback({ type: 'success', message: 'Medico eliminado correctamente.' });
+      setDeleteTarget(null);
+      await fetchMedicos();
+    } catch (error) {
+      console.error('Error deleting medico:', error);
+      setFeedback({ type: 'error', message: getApiErrorMessage(error, 'Error al eliminar el medico.') });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
-  if (loading && medicos.length === 0) return <Loading message="Cargando médicos..." />;
+  if (loading && medicos.length === 0) {
+    return <Loading message="Cargando medicos..." />;
+  }
 
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">Gestión de Médicos</h1>
+        <h1 className="page-title">Gestion de Medicos</h1>
         <button className="btn btn-primary" onClick={() => openModal()}>
-          <Plus size={18} /> Nuevo Médico
+          <Plus size={18} /> Nuevo Medico
         </button>
       </div>
 
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Especialidad</th>
-              <th>Teléfono</th>
-              <th>Email</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {medicos.map((medico) => (
-              <tr key={medico.id_medico}>
-                <td>#{medico.id_medico}</td>
-                <td style={{ fontWeight: '500' }}>{medico.nombre}</td>
-                <td><span className="badge badge-success">{medico.especialidad}</span></td>
-                <td>{medico.telefono}</td>
-                <td>{medico.email}</td>
-                <td>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-outline" style={{ padding: '0.375rem' }} onClick={() => openModal(medico)}>
-                      <Edit2 size={16} />
-                    </button>
-                    <button className="btn btn-outline" style={{ padding: '0.375rem', color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={() => handleDelete(medico.id_medico)}>
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {medicos.length === 0 && !loading && (
-              <tr>
-                <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>No se encontraron médicos.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <FeedbackMessage
+        type={feedback.type}
+        message={feedback.message}
+        onClose={() => setFeedback({ type: '', message: '' })}
+      />
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title={currentMedico ? 'Editar Médico' : 'Nuevo Médico'}
-      >
+      {medicos.length === 0 ? (
+        <EmptyState icon={Stethoscope} title="No hay medicos" message="Registra el primer medico para empezar a gestionar la agenda." />
+      ) : (
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Especialidad</th>
+                <th>Telefono</th>
+                <th>Email</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {medicos.map((medico) => (
+                <tr key={medico.id_medico}>
+                  <td>#{medico.id_medico}</td>
+                  <td style={{ fontWeight: 500 }}>{medico.nombre}</td>
+                  <td><span className="badge badge-success">{medico.especialidad}</span></td>
+                  <td>{medico.telefono}</td>
+                  <td>{medico.email}</td>
+                  <td>
+                    <div style={styles.actions}>
+                      <button className="btn btn-outline" style={styles.iconBtn} onClick={() => openModal(medico)} title="Editar medico">
+                        <Edit2 size={16} />
+                      </button>
+                      <button className="btn btn-outline" style={{ ...styles.iconBtn, color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={() => setDeleteTarget(medico)} title="Eliminar medico">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={currentMedico ? 'Editar Medico' : 'Nuevo Medico'}>
         <form onSubmit={handleSubmit}>
-          <FormInput 
-            label="Nombre Completo" 
-            value={formData.nombre} 
-            onChange={e => setFormData({...formData, nombre: e.target.value})} 
-            required 
-          />
-          <FormInput 
-            label="Especialidad" 
-            value={formData.especialidad} 
-            onChange={e => setFormData({...formData, especialidad: e.target.value})} 
-            required 
-          />
-          <FormInput 
-            label="Teléfono" 
-            value={formData.telefono} 
-            onChange={e => setFormData({...formData, telefono: e.target.value})} 
-            required 
-          />
-          <FormInput 
-            label="Email" 
-            type="email"
-            value={formData.email} 
-            onChange={e => setFormData({...formData, email: e.target.value})} 
-            required 
-          />
-          
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-            <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={formLoading}>
-              {formLoading ? 'Guardando...' : 'Guardar Médico'}
-            </button>
+          <FormInput label="Nombre Completo" value={formData.nombre} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} required />
+          <FormInput label="Especialidad" value={formData.especialidad} onChange={(e) => setFormData({ ...formData, especialidad: e.target.value })} required />
+          <FormInput label="Telefono" value={formData.telefono} onChange={(e) => setFormData({ ...formData, telefono: e.target.value })} required />
+          <FormInput label="Email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+
+          <div style={styles.formActions}>
+            <button type="button" className="btn btn-outline" onClick={closeModal} disabled={formLoading}>Cancelar</button>
+            <button type="submit" className="btn btn-primary" disabled={formLoading}>{formLoading ? 'Guardando...' : 'Guardar Medico'}</button>
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={Boolean(deleteTarget)}
+        title="Eliminar medico"
+        message={`Esta accion eliminara a ${deleteTarget?.nombre || 'este medico'} del listado activo.`}
+        confirmText="Eliminar"
+        loading={deleteLoading}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
+};
+
+const styles = {
+  actions: {
+    display: 'flex',
+    gap: '0.5rem'
+  },
+  iconBtn: {
+    padding: '0.375rem'
+  },
+  formActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '1rem',
+    marginTop: '2rem'
+  }
 };
 
 export default Medicos;

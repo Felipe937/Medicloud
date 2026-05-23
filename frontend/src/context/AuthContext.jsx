@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
+
 import api from '../services/api';
 
 export const AuthContext = createContext();
@@ -20,7 +21,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post('/api/auth/login', { email, password });
       const { token, user: userData } = response.data.data;
       
       localStorage.setItem('medicloud_token', token);

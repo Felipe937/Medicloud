@@ -1,6 +1,7 @@
-const { getConnection, sql } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
+const { getConnection, sql } = require('../config/database');
 
 /**
  * Controlador de Autenticación
@@ -84,7 +85,15 @@ const authController = {
             // 1. Buscar al usuario por email
             const result = await pool.request()
                 .input('email', sql.NVarChar, email)
-                .query('SELECT id, nombre, email, password, rol, estado FROM Usuarios WHERE email = @email');
+                .query(`SELECT
+                    id_usuario,
+                    nombre,
+                    email,
+                    password_hash,
+                    rol,
+                    estado
+                FROM usuarios
+                WHERE email = @email`);
 
             const user = result.recordset[0];
 
@@ -104,7 +113,7 @@ const authController = {
             }
 
             // 3. Comparar contraseñas
-            const isMatch = await bcrypt.compare(password, user.password);
+            const isMatch = await bcrypt.compare(password, user.password_hash);
 
             if (!isMatch) {
                 return res.status(401).json({
@@ -115,7 +124,7 @@ const authController = {
 
             // 4. Generar el JWT
             const payload = {
-                id: user.id,
+                id: user.id_usuario,
                 rol: user.rol
             };
 
@@ -123,8 +132,8 @@ const authController = {
                 expiresIn: '8h'
             });
 
-            // Eliminar password del objeto user antes de devolverlo
-            delete user.password;
+            // Eliminar password_hash del objeto user antes de devolverlo
+            delete user.password_hash;
 
             // 5. Responder
             res.status(200).json({
